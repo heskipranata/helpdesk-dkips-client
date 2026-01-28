@@ -27,7 +27,6 @@ export default function LogoutButton() {
 
       router.push("/supervisor/login");
     } catch (err) {
-      console.error("Logout error:", err);
       router.push("/login");
     }
   };

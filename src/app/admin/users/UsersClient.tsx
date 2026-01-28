@@ -103,7 +103,6 @@ export default function UsersClient({
         }
       }
     } catch (error) {
-      console.error("Error submitting user:", error);
       alert("Terjadi kesalahan");
     }
   };
@@ -126,7 +125,6 @@ export default function UsersClient({
           alert("Gagal menghapus user");
         }
       } catch (error) {
-        console.error("Error deleting user:", error);
         alert("Terjadi kesalahan saat menghapus user");
       } finally {
         setIsDeleteOpen(false);

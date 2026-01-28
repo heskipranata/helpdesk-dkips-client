@@ -35,14 +35,11 @@ export default function JenisLayananClient({
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("API Response:", data);
         const items = Array.isArray(data) ? data : data.data ?? [];
         setJenisLayanan(items);
-      } else {
-        console.error("API Error:", res.status, res.statusText);
       }
     } catch (error) {
-      console.error("Error:", error);
+      // Error silently handled
     }
   };
 
@@ -83,7 +80,7 @@ export default function JenisLayananClient({
         await fetchJenisLayanan();
       }
     } catch (error) {
-      console.error("Error:", error);
+      // Error silently handled
     } finally {
       setIsSubmitting(false);
     }
@@ -105,7 +102,7 @@ export default function JenisLayananClient({
         await fetchJenisLayanan();
       }
     } catch (error) {
-      console.error("Error:", error);
+      // Error silently handled
     } finally {
       setIsDeleting(null);
     }

@@ -24,7 +24,7 @@ export default function Sidebar() {
       });
       router.push("/supervisor/login");
     } catch (error) {
-      console.error("Logout error:", error);
+      // Error silently handled
     }
   };
 

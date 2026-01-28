@@ -6,6 +6,7 @@ import StatusBadge from "./StatusBadge";
 type Layanan = {
   id: string | number;
   tanggal: string;
+  nama_opd?: string;
   nama_instansi: string;
   jenis_permintaan: string;
   status: string;
@@ -25,6 +26,11 @@ export default function RiwayatCard({ layanan }: { layanan: Layanan }) {
               </h3>
               <StatusBadge status={layanan.status} />
             </div>
+            {layanan.nama_opd && (
+              <p className="text-xs text-gray-500 mb-1">
+                OPD: {layanan.nama_opd}
+              </p>
+            )}
             <p className="text-sm text-gray-600">{layanan.jenis_permintaan}</p>
           </div>
           <span className="text-xs text-gray-500">{layanan.tanggal}</span>

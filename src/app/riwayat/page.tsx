@@ -14,15 +14,11 @@ async function getRiwayatLayanan() {
       credentials: "include",
     });
 
-    console.log("Riwayat Response Status:", res.status);
-
     if (!res.ok) {
-      console.warn("Gagal fetch riwayat:", res.status);
       return [];
     }
 
     const json = await res.json();
-    console.log("Riwayat Raw Data:", json);
 
     // Handle berbagai format response
     let rawData = [];
@@ -40,17 +36,16 @@ async function getRiwayatLayanan() {
       tanggal: item.created_at
         ? new Date(item.created_at).toISOString().split("T")[0]
         : "",
-      nama_instansi: item.nama_opd || "OPD", // Akan di-populate dari join
+      nama_opd: item.nama_opd || "",
+      nama_instansi: item.nama_instansi || item.nama_opd || "OPD",
       jenis_permintaan: item.nama_layanan || item.jenis_layanan || "",
       status: item.status,
       deskripsi: item.deskripsi || "",
       pdf_url: item.file_surat || "",
     }));
 
-    console.log("Transformed Data:", transformedData);
     return transformedData;
   } catch (err) {
-    console.error("Error fetching riwayat:", err);
     return [];
   }
 }

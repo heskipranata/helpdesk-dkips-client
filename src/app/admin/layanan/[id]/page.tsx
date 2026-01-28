@@ -50,9 +50,6 @@ async function getServiceDetail(id: string) {
       raw?.pdf_url ?? raw?.file_surat ?? raw?.lampiran ?? raw?.attachment_url,
   };
 
-  console.log("📄 PDF URL mapped:", service.pdf_url);
-  console.log("📋 Full service object:", service);
-
   // Fetch chat messages
   const chatRes = await fetchWithAuth(`${API_URL}/layanan/${id}/chat`);
   let chatMessages = [];

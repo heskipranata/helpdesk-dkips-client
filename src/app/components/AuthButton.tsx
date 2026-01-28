@@ -58,7 +58,7 @@ export default function AuthButton({ className, onNavigate }: AuthButtonProps) {
         onNavigate();
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      // Error silently handled
     }
   };
 

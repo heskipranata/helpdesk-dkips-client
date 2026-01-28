@@ -80,7 +80,6 @@ async function getStatsSummary(): Promise<StatsSummary> {
   }
 
   if (!res.ok) {
-    console.error("Failed to fetch stats:", res.status);
     return {
       total: 0,
       baru: 0,
@@ -92,7 +91,6 @@ async function getStatsSummary(): Promise<StatsSummary> {
   }
 
   const data = await res.json();
-  console.log("Stats data:", data);
 
   return {
     total: Number(data.total ?? 0),

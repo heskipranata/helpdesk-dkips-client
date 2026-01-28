@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Proxy PDF error:", error);
     return NextResponse.json({ error: "Failed to proxy PDF" }, { status: 500 });
   }
 }

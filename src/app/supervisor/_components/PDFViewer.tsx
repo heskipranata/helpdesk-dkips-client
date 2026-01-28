@@ -44,7 +44,6 @@ export default function PDFViewer({
 
         for (const path of paths) {
           try {
-            console.log("🔍 Trying PDF path:", path);
             response = await fetch(path, {
               credentials: "include",
               headers: {
@@ -53,19 +52,11 @@ export default function PDFViewer({
             });
 
             if (response.ok) {
-              console.log("✅ PDF found at:", path);
-              console.log("Response headers:", response.headers);
-              console.log(
-                "Content-Type:",
-                response.headers.get("content-type")
-              );
               break;
             }
             lastError = `${response.status} ${response.statusText}`;
-            console.log("❌ Failed:", path, lastError);
           } catch (err) {
             lastError = String(err);
-            console.log("❌ Error:", path, lastError);
           }
         }
 
@@ -76,17 +67,10 @@ export default function PDFViewer({
         }
 
         const blob = await response.blob();
-
-        // Check if it's actually a PDF
-        if (!blob.type.includes("pdf") && !blob.type.includes("octet-stream")) {
-          console.warn("File type:", blob.type);
-        }
-
         const url = URL.createObjectURL(blob);
         setBlobUrl(url);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching PDF:", err);
         setError("Gagal memuat PDF. Silakan gunakan tombol Unduh.");
         setLoading(false);
       }

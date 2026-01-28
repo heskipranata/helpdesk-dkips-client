@@ -64,7 +64,7 @@ export default function DetailClient({
         body: JSON.stringify({ message }),
       });
     } catch (error) {
-      console.error("Error:", error);
+      // Error silently handled
     }
   };
 
@@ -108,13 +108,13 @@ export default function DetailClient({
             body: JSON.stringify({ message: statusMessage }),
           });
         } catch (error) {
-          console.error("Error:", error);
+          // Error silently handled
         }
 
         router.refresh();
       }
     } catch (error) {
-      console.error("Error:", error);
+      // Error silently handled
     } finally {
       setIsUpdatingStatus(false);
     }

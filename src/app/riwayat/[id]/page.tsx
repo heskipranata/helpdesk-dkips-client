@@ -17,12 +17,10 @@ async function getServiceDetail(id: string) {
     });
 
     if (!resService.ok) {
-      console.error("Failed to fetch service:", resService.status);
       return null;
     }
 
     const rawData = await resService.json();
-    console.log("Raw Service Data:", rawData);
 
     const date = rawData?.created_at ? new Date(rawData.created_at) : null;
 
@@ -53,18 +51,14 @@ async function getServiceDetail(id: string) {
           } else {
             namaOpd = opdData?.nama_opd ?? opdData?.name ?? "-";
           }
-          console.log("OPD Data found:", namaOpd);
         }
       } catch (err) {
-        console.warn("Could not fetch OPD name:", err);
         // Fallback: Jika API gagal, gunakan ID sebagai placeholder
         namaOpd = `OPD ${rawData.opd_id}`;
       }
     }
 
     const fileSurat = rawData?.file_surat ?? "";
-    console.log("Raw file_surat:", fileSurat);
-    console.log("File exists:", !!fileSurat);
 
     const service = {
       id: rawData?.id ?? id,
@@ -86,9 +80,6 @@ async function getServiceDetail(id: string) {
       email: rawData?.email ?? "",
       file_surat: fileSurat,
     };
-
-    console.log("Transformed Service:", service);
-    console.log("Final file_surat for display:", fileSurat);
 
     // Fetch chat messages
     const resChat = await fetch(`${API_URL}/layanan/${id}/chat`, {
@@ -117,7 +108,6 @@ async function getServiceDetail(id: string) {
           timestamp: ts ? ts.toLocaleString("id-ID") : m.created_at ?? "",
         };
       });
-      console.log("Chat Messages:", chatMessages);
     }
 
     // Fetch progress/status history
@@ -131,7 +121,6 @@ async function getServiceDetail(id: string) {
     if (resProgress.ok) {
       const progData = await resProgress.json();
       progress = Array.isArray(progData) ? progData : progData?.progress ?? [];
-      console.log("Progress Data:", progress);
     }
 
     return {
@@ -140,7 +129,6 @@ async function getServiceDetail(id: string) {
       progress,
     };
   } catch (err) {
-    console.error("Error fetching service detail:", err);
     return null;
   }
 }

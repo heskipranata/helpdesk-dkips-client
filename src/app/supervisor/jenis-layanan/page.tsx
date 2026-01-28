@@ -19,15 +19,12 @@ async function getAllJenisLayanan() {
     }
 
     if (!res.ok) {
-      console.error("API Error:", res.status, res.statusText);
       return [];
     }
 
     const json = await res.json();
-    console.log("Server-side API Response:", json);
     return Array.isArray(json) ? json : json.data ?? [];
   } catch (error) {
-    console.error("Error fetching jenis layanan:", error);
     return [];
   }
 }

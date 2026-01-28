@@ -66,14 +66,6 @@ export default function LoginForm() {
           serverMessage = "Login gagal";
         }
 
-        // Helpful debug in console during development
-        console.error("Login failed", {
-          status: response.status,
-          statusText: response.statusText,
-          endpoint,
-          serverMessage,
-        });
-
         setError(serverMessage);
         setIsLoading(false);
         return;
@@ -83,7 +75,6 @@ export default function LoginForm() {
       // Redirect to supervisor dashboard
       router.push("/supervisor/dashboard");
     } catch (err: any) {
-      console.error("Login error", err);
       const msg =
         err?.message === "Failed to fetch"
           ? "Gagal terhubung ke server (CORS/jaringan). Pastikan API berjalan di localhost:3001 dan CORS mengizinkan credentials."

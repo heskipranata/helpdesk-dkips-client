@@ -28,36 +28,26 @@ export default function Layanan() {
           const jenisResponse = await fetch(
             "http://localhost:3001/api/jenis-layanan"
           );
-          console.log("Jenis Layanan Status:", jenisResponse.status);
 
           if (jenisResponse.ok) {
             const jenisText = await jenisResponse.text();
-            console.log("Jenis Layanan Raw Response:", jenisText);
 
             try {
               const jenisData = JSON.parse(jenisText);
-              console.log("Jenis Layanan Parsed:", jenisData);
               setJenisLayanan(
                 Array.isArray(jenisData) ? jenisData : jenisData.data || []
               );
             } catch (parseErr) {
-              console.error("Error parsing jenis layanan JSON:", parseErr);
               setJenisLayanan([]);
             }
-          } else {
-            console.warn(
-              "Jenis Layanan endpoint error:",
-              jenisResponse.status,
-              jenisResponse.statusText
-            );
           }
         } catch (err) {
-          console.error("Error fetching jenis layanan:", err);
+          // Error silently handled
         }
 
         // Tidak perlu fetch user data - backend akan ambil dari req.user
       } catch (err) {
-        console.error("Unexpected error loading data:", err);
+        // Error silently handled
       } finally {
         setIsLoading(false);
       }
@@ -125,33 +115,19 @@ export default function Layanan() {
         formDataToSend.append("file_surat", pdfFile);
       }
 
-      // Log apa yang dikirim untuk debug
-      console.log("Form Data yang dikirim:");
-      for (let [key, value] of formDataToSend.entries()) {
-        if (value instanceof File) {
-          console.log(`- ${key}: File(${value.name}, ${value.size} bytes)`);
-        } else {
-          console.log(`- ${key}: ${value}`);
-        }
-      }
-
       const response = await fetch("http://localhost:3001/api/layanan/", {
         method: "POST",
         body: formDataToSend,
         credentials: "include",
       });
 
-      console.log("Response Status:", response.status);
-
       if (!response.ok) {
         let errorMessage = "Gagal mengirim permintaan";
         try {
           const errorData = await response.json();
-          console.log("Error Response:", errorData);
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (parseErr) {
           const errorText = await response.text();
-          console.log("Error Response Text:", errorText);
           errorMessage = `Server Error (${
             response.status
           }): ${errorText.substring(0, 100)}`;
@@ -160,7 +136,6 @@ export default function Layanan() {
       }
 
       const successData = await response.json();
-      console.log("Success Response:", successData);
 
       setSuccess("Permintaan service berhasil diajukan!");
       setFormData({
@@ -176,7 +151,6 @@ export default function Layanan() {
       if (fileInput) fileInput.value = "";
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan";
-      console.error("Submit Error:", errorMsg);
       setError(errorMsg);
     } finally {
       setIsSubmitting(false);

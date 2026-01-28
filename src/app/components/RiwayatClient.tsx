@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RiwayatCard from "./RiwayatCard";
 
 type Layanan = {
   id: string | number;
   tanggal: string;
+  nama_opd?: string;
   nama_instansi: string;
   jenis_permintaan: string;
   status: string;
@@ -16,6 +17,32 @@ type Layanan = {
 export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [namaOPD, setNamaOPD] = useState<string>("");
+
+  useEffect(() => {
+    // Ambil profil user dari GET /auth/me
+    const fetchUserProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/auth/me", {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (res.ok) {
+          const userData = await res.json();
+          if (userData.nama_opd) {
+            setNamaOPD(userData.nama_opd);
+          }
+        }
+      } catch (err) {
+        // Error silently handled
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const filteredLayanan = layanan.filter((item) => {
     const matchesSearch =
@@ -31,6 +58,14 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
     <div className="min-h-screen bg-gray-50 py-24">
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="mb-8">
+          {namaOPD && (
+            <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                Organisasi Perangkat Daerah
+              </p>
+              <h2 className="text-2xl font-bold text-blue-900">{namaOPD}</h2>
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Riwayat Permintaan
           </h1>
@@ -48,7 +83,7 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
                 placeholder="Cari berdasarkan jenis permintaan atau instansi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
               />
             </div>
             <div className="md:w-48">

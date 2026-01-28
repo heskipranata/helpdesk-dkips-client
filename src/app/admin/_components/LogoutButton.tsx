@@ -27,7 +27,7 @@ export default function LogoutButton({ fullWidth }: LogoutButtonProps) {
             credentials: "include",
           });
         } catch (err) {
-          console.error("Logout fetch error:", err);
+          // Error silently handled
         }
       }
 
@@ -36,7 +36,7 @@ export default function LogoutButton({ fullWidth }: LogoutButtonProps) {
 
       router.push("/admin/login");
     } catch (err) {
-      console.error("Logout error:", err);
+      // Error silently handled
       document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
       router.push("/admin/login");
     }

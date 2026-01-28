@@ -104,7 +104,7 @@ export default function UserFormModal({
               break;
             }
           } catch (innerErr) {
-            console.error("Fetch OPD candidate failed", url, innerErr);
+            // Error silently handled
           }
         }
 
@@ -116,7 +116,6 @@ export default function UserFormModal({
 
         setOpdOptions(found);
       } catch (err) {
-        console.error("Error fetching OPD list", err);
         setOpdError("Gagal memuat daftar OPD");
       } finally {
         setLoadingOpd(false);
