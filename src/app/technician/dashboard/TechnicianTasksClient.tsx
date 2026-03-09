@@ -101,11 +101,11 @@ export default function TechnicianTasksClient({
   });
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 space-y-8">
+    <div className="space-y-8 px-8">
       <section>
-        <h1 className="text-2xl font-bold text-gray-800">Tugas Teknisi</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Dashboard Teknisi</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Kelola tugas yang ditugaskan admin dan update status layanan.
+          Kelola dan perbarui status layanan yang telah ditugaskan kepada Anda.
         </p>
       </section>
 
@@ -183,12 +183,14 @@ export default function TechnicianTasksClient({
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr className="text-left text-gray-600">
-                  <th className="px-4 py-3 font-semibold">ID</th>
+                  <th className="px-4 py-3 font-semibold text-center">ID</th>
                   <th className="px-4 py-3 font-semibold">Instansi</th>
                   <th className="px-4 py-3 font-semibold">Layanan</th>
                   <th className="px-4 py-3 font-semibold">Masuk</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold text-right">Aksi</th>
+                  <th className="px-4 py-3 font-semibold text-center">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,7 +199,9 @@ export default function TechnicianTasksClient({
                     key={task.id}
                     className="border-t border-gray-100 bg-white"
                   >
-                    <td className="px-4 py-3 text-gray-700">{task.id}</td>
+                    <td className="px-4 py-3 text-gray-700 text-center">
+                      {task.id}
+                    </td>
                     <td className="px-4 py-3 text-gray-800 font-medium">
                       {task.instansi}
                     </td>
@@ -207,7 +211,7 @@ export default function TechnicianTasksClient({
                     <td className="px-4 py-3 text-gray-600">
                       {task.tanggal} {task.jam}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor(
                           task.status,
@@ -216,7 +220,7 @@ export default function TechnicianTasksClient({
                         {statusLabels[task.status] ?? task.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-center">
                       <Link
                         href={`/technician/layanan/${task.id}`}
                         className="inline-flex px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
@@ -233,5 +237,4 @@ export default function TechnicianTasksClient({
       </section>
     </div>
   );
-  }
-
+}

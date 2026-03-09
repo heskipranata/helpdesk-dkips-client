@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import UserTable from "@/app/admin/_components/UserTable";
 import UserFormModal from "@/app/admin/_components/UserFormModal";
 import DeleteConfirmModal from "@/app/admin/_components/DeleteConfirmModal";
@@ -21,6 +21,15 @@ type UserFormData = {
   role: string;
   opd_id: string | number;
 };
+
+type ApiResult = {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  message: string;
+  data?: any;
+};
+
 export default function UsersClient({
   users: initialUsers,
 }: {
@@ -33,8 +42,28 @@ export default function UsersClient({
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const filteredUsers = users.filter(
+  const normalizedUsers = useMemo(
+    () =>
+      users.map((user) => {
+        const rawUser = user as User & {
+          name?: string;
+          opd_nama?: string;
+          nama_instansi?: string;
+        };
+
+        return {
+          ...user,
+          nama: rawUser.nama ?? rawUser.name ?? "",
+          nama_opd:
+            rawUser.nama_opd ?? rawUser.opd_nama ?? rawUser.nama_instansi ?? "",
+        };
+      }),
+    [users],
+  );
+
+  const filteredUsers = normalizedUsers.filter(
     (user) =>
+      (user.nama?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (user.nama_opd?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       user.username.toLowerCase().includes(searchTerm.toLowerCase()),
   );
@@ -54,26 +83,83 @@ export default function UsersClient({
     setIsDeleteOpen(true);
   };
 
+  const requestWithFallback = async (
+    urls: string[],
+    init: RequestInit,
+  ): Promise<ApiResult> => {
+    let lastStatus = 0;
+    let lastStatusText = "";
+    let lastMessage = "";
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          credentials: "include",
+          ...init,
+        });
+
+        let data: any = null;
+        try {
+          data = await res.json();
+        } catch {
+          data = null;
+        }
+
+        if (res.ok) {
+          return {
+            ok: true,
+            status: res.status,
+            statusText: res.statusText,
+            message: "",
+            data,
+          };
+        }
+
+        lastStatus = res.status;
+        lastStatusText = res.statusText;
+        lastMessage =
+          data?.message ?? data?.error ?? data?.errors?.[0]?.msg ?? "";
+      } catch {
+        // Try next URL
+      }
+    }
+
+    return {
+      ok: false,
+      status: lastStatus,
+      statusText: lastStatusText,
+      message: lastMessage,
+    };
+  };
+
   const handleSubmitUser = async (userData: UserFormData) => {
     const API_URL =
       process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
     try {
       if (selectedUser) {
-        // Update existing user
-        const updateData = { ...userData, id: selectedUser.id };
-        const res = await fetch(`${API_URL}/admin/users/${selectedUser.id}`, {
+        // Backend route: PUT /users/:id
+        const updatePayload = { ...userData };
+        const updateUrl = `${API_URL}/users/${selectedUser.id}`;
+
+        const result = await requestWithFallback([updateUrl], {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(updateData),
+          body: JSON.stringify(updatePayload),
         });
 
-        if (res.ok) {
+        if (result?.ok) {
+          const updated =
+            result.data && typeof result.data === "object" ? result.data : null;
           setUsers(
             users.map((u) =>
               u.id === selectedUser.id
-                ? { ...u, ...userData, id: selectedUser.id }
+                ? {
+                    ...u,
+                    ...updatePayload,
+                    ...(updated ?? {}),
+                    id: selectedUser.id,
+                  }
                 : u,
             ),
           );
@@ -81,28 +167,43 @@ export default function UsersClient({
           setSelectedUser(null);
           alert("User berhasil diubah");
         } else {
-          alert("Gagal mengubah user");
+          const statusInfo = result?.status
+            ? ` (${result.status} ${result.statusText})`
+            : "";
+          alert(
+            result?.message
+              ? `Gagal mengubah user${statusInfo}: ${result.message}`
+              : `Gagal mengubah user${statusInfo}`,
+          );
         }
       } else {
-        // Add new user
-        const res = await fetch(`${API_URL}/admin/users`, {
+        const result = await requestWithFallback([`${API_URL}/users`], {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify(userData),
         });
 
-        if (res.ok) {
-          const newUser = await res.json();
-          setUsers([...users, newUser]);
+        if (result.ok) {
+          const newUser =
+            result.data && typeof result.data === "object"
+              ? (result.data.data ?? result.data.user ?? result.data)
+              : userData;
+          setUsers([...users, newUser as User]);
           setIsFormOpen(false);
           setSelectedUser(null);
           alert("User berhasil ditambah");
         } else {
-          alert("Gagal menambah user");
+          const statusInfo = result.status
+            ? ` (${result.status} ${result.statusText})`
+            : "";
+          alert(
+            result.message
+              ? `Gagal menambah user${statusInfo}: ${result.message}`
+              : `Gagal menambah user${statusInfo}`,
+          );
         }
       }
-    } catch (error) {
+    } catch {
       alert("Terjadi kesalahan");
     }
   };
@@ -113,7 +214,7 @@ export default function UsersClient({
         process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
       try {
-        const res = await fetch(`${API_URL}/admin/users/${userToDelete.id}`, {
+        const res = await fetch(`${API_URL}/users/${userToDelete.id}`, {
           method: "DELETE",
           credentials: "include",
         });
@@ -139,7 +240,7 @@ export default function UsersClient({
         <div>
           <input
             type="text"
-            placeholder="Cari nama OPD atau username..."
+            placeholder="Cari nama, nama OPD, atau username..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="border border-gray-300 rounded px-4 py-2 text-sm w-80 text-gray-700"

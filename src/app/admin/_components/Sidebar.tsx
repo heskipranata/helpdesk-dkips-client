@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LogoutButton from "./LogoutButton";
+import Image from "next/image";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -17,9 +18,18 @@ export default function Sidebar() {
   return (
     <aside className="sidebar w-64 bg-blue-700 text-white min-h-screen flex flex-col">
       <div className="p-6 flex-1">
-        <div className="mb-8">
-          <h2 className="text-xl font-bold">Helpdesk Admin</h2>
-          <p className="text-xs text-blue-200 mt-1">Management Panel</p>
+        <div className="mb-8 flex items-center gap-3">
+          <Image
+            src="https://res.cloudinary.com/dewi8c1ll/image/upload/v1765522604/sulut-icon_c9wme4.png"
+            alt="Helpdesk DKIPS Logo"
+            width={48}
+            height={48}
+            className="bg-white rounded-lg p-1"
+          />
+          <div className="leading-tight">
+            <h2 className="text-base font-bold">Helpdesk DKIPS</h2>
+            <p className="text-xs text-blue-200">Admin Panel</p>
+          </div>
         </div>
         <nav className="space-y-1">
           <Link

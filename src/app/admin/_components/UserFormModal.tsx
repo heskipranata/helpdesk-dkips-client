@@ -30,7 +30,7 @@ type UserFormModalProps = {
   user: User | null;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (user: UserFormData) => void;
+  onSubmit: (user: UserFormData) => void | Promise<void>;
 };
 
 export default function UserFormModal({
@@ -125,7 +125,7 @@ export default function UserFormModal({
     fetchOpd();
   }, [API_URL, isOpen]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const submitData: UserFormData = {
       ...formData,
@@ -135,8 +135,7 @@ export default function UserFormModal({
     if (!submitData.password || submitData.password.trim() === "") {
       delete submitData.password;
     }
-    onSubmit(submitData);
-    onClose();
+    await onSubmit(submitData);
   };
 
   if (!isOpen) return null;
@@ -278,7 +277,7 @@ export default function UserFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
             >
               Batal
             </button>

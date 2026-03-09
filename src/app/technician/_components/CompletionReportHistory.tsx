@@ -26,8 +26,6 @@ export default function CompletionReportHistory({
 
   return (
     <div className=" rounded-lg p-0 space-y-4">
-
-
       <div className="space-y-4">
         {reports.slice(0, 1).map((report) => {
           const completedDate = new Date(report.completed_at).toLocaleString(
@@ -45,54 +43,56 @@ export default function CompletionReportHistory({
           return (
             <div
               key={report.id}
-              className="border border-gray-200 rounded-lg p-3 space-y-3"
+              className="border border-gray-200 rounded-lg overflow-hidden"
             >
-              {/* Header */}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {completedDate}
+              <div className="flex flex-col lg:flex-row">
+                {/* Photo Section - 2/3 width */}
+                {report.photo_path && (
+                  <div className="lg:w-2/3 w-full">
+                    <img
+                      src={report.photo_path}
+                      alt={`Laporan ${report.id}`}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  {report.technician_nama && (
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      oleh {report.technician_nama}
+                )}
+
+                {/* Chat/Summary Section - 1/3 width */}
+                <div className="lg:w-1/3 w-full p-4 bg-white space-y-3 flex flex-col">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-500">
+                        {completedDate}
+                      </div>
+                      {report.technician_nama && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          oleh {report.technician_nama}
+                        </div>
+                      )}
+                    </div>
+                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
+                      {report.status}
+                    </span>
+                  </div>
+
+                  {/* Summary Section */}
+                  {report.summary && (
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-600 mb-1">
+                        Catatan:
+                      </p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {report.summary}
+                      </p>
                     </div>
                   )}
                 </div>
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
-                  {report.status}
-                </span>
               </div>
-
-              {/* Photo Section */}
-              {report.photo_path && (
-                <div>
-                  <img
-                    src={report.photo_path}
-                    alt={`Laporan ${report.id}`}
-                    className="max-w-sm max-h-48 rounded border border-gray-200 bg-gray-50"
-                  />
-                </div>
-              )}
-
-              {/* Summary Section */}
-              {report.summary && (
-                <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">
-                    Catatan:
-                  </p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {report.summary}
-                  </p>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
-
-
     </div>
   );
 }

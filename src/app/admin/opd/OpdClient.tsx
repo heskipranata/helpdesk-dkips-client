@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 type Opd = {
   id: string | number;
@@ -13,7 +12,6 @@ type OpdClientProps = {
 };
 
 export default function OpdClient({ initialData }: OpdClientProps) {
-  const router = useRouter();
   const [opdList, setOpdList] = useState<Opd[]>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,6 +20,62 @@ export default function OpdClient({ initialData }: OpdClientProps) {
   const [formData, setFormData] = useState({
     nama_opd: "",
   });
+
+  const tryOpdRequest = async (
+    urls: string[],
+    init: RequestInit,
+  ): Promise<{
+    ok: boolean;
+    status: number;
+    statusText: string;
+    message: string;
+  }> => {
+    let lastStatus = 0;
+    let lastStatusText = "";
+    let lastMessage = "";
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          credentials: "include",
+          ...init,
+        });
+
+        if (res.ok) {
+          return {
+            ok: true,
+            status: res.status,
+            statusText: res.statusText,
+            message: "",
+          };
+        }
+
+        lastStatus = res.status;
+        lastStatusText = res.statusText;
+
+        try {
+          const data = await res.json();
+          lastMessage =
+            data?.message ?? data?.error ?? data?.errors?.[0]?.msg ?? "";
+        } catch {
+          try {
+            lastMessage = await res.text();
+          } catch {
+            lastMessage = "";
+          }
+        }
+      } catch {
+        // Try next candidate URL
+      }
+    }
+
+    return {
+      ok: false,
+      status: lastStatus,
+      statusText: lastStatusText,
+      message: lastMessage,
+    };
+  };
 
   const fetchOpd = async () => {
     try {
@@ -91,25 +145,35 @@ export default function OpdClient({ initialData }: OpdClientProps) {
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
       const method = editingId ? "PUT" : "POST";
-      const url = editingId ? `${API_URL}/opd/${editingId}` : `${API_URL}/opd`;
+      const urls = editingId
+        ? [`${API_URL}/opd/${editingId}`, `${API_URL}/admin/opd/${editingId}`]
+        : [`${API_URL}/opd`, `${API_URL}/admin/opd`];
 
-      const res = await fetch(url, {
+      const result = await tryOpdRequest(urls, {
         method,
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(formData),
       });
 
-      if (res.ok) {
+      if (result.ok) {
         setIsModalOpen(false);
         setEditingId(null);
         setFormData({
           nama_opd: "",
         });
         await fetchOpd();
+      } else {
+        const statusInfo = result.status
+          ? `(${result.status} ${result.statusText})`
+          : "";
+        alert(
+          result.message
+            ? `Gagal menyimpan OPD ${statusInfo}: ${result.message}`
+            : `Gagal menyimpan OPD ${statusInfo}`,
+        );
       }
     } catch (error) {
-      // Error silently handled
+      alert("Terjadi kesalahan saat menyimpan OPD");
     } finally {
       setIsSubmitting(false);
     }
@@ -122,16 +186,25 @@ export default function OpdClient({ initialData }: OpdClientProps) {
     try {
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-      const res = await fetch(`${API_URL}/opd/${id}`, {
+      const urls = [`${API_URL}/opd/${id}`, `${API_URL}/admin/opd/${id}`];
+      const result = await tryOpdRequest(urls, {
         method: "DELETE",
-        credentials: "include",
       });
 
-      if (res.ok) {
+      if (result.ok) {
         await fetchOpd();
+      } else {
+        const statusInfo = result.status
+          ? `(${result.status} ${result.statusText})`
+          : "";
+        alert(
+          result.message
+            ? `Gagal menghapus OPD ${statusInfo}: ${result.message}`
+            : `Gagal menghapus OPD ${statusInfo}`,
+        );
       }
     } catch (error) {
-      // Error silently handled
+      alert("Terjadi kesalahan saat menghapus OPD");
     } finally {
       setIsDeleting(null);
     }

@@ -88,6 +88,9 @@ export default function TechnicianServiceDetailClient({
     useState<ChatMessage[]>(initialMessages);
   const [reports, setReports] =
     useState<CompletionReportRecord[]>(initialReports);
+  const [showReportForm, setShowReportForm] = useState(
+    initialReports.length === 0,
+  );
 
   const handleCompletionReportSuccess = (report: CompletionReport) => {
     const timestamp = report.completed_at
@@ -118,6 +121,7 @@ export default function TechnicianServiceDetailClient({
       technician_nama: "Anda",
     };
     setReports((prev) => [newReport, ...prev]);
+    setShowReportForm(false); // Sembunyikan form setelah submit
   };
 
   const handleSendMessage = async (message: string) => {
@@ -148,54 +152,108 @@ export default function TechnicianServiceDetailClient({
   return (
     <div className="w-full max-w-6xl mx-auto px-4 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            {service.jenis_permintaan}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">{service.deskripsi}</p>
-        </div>
         <Link
           href="/technician/dashboard"
-          className="px-3 py-2 text-sm rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          className="inline-flex items-center justify-center w-10 h-10 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          title="Kembali ke Tabel"
         >
-          Kembali ke Tabel
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
         </Link>
       </div>
 
       <article className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {service.instansi}
-                  </h2>
-                </div>
-                <p className="text-sm text-gray-600 mt-1"></p>
-                <div className="mt-3 text-xs text-gray-500 space-y-1">
-                  <div>
-                    Tanggal: {service.tanggal} {service.jam}
-                  </div>
+        {/* Detail Service Info */}
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                {service.instansi}
+              </h2>
+              <h1 className="text-2xl font-bold text-gray-800">
+                {service.jenis_permintaan}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">{service.deskripsi}</p>
+
+              <div className="flex items-center gap-3"></div>
+              <p className="text-sm text-gray-600 mt-1"></p>
+              <div className="mt-3 text-xs text-gray-500 space-y-1">
+                <div>
+                  Tanggal: {service.tanggal} {service.jam}
                 </div>
               </div>
             </div>
           </div>
-
-          <div className="border border-gray-200 rounded-lg overflow-hidden min-h-105">
-            <MessageThread
-              messages={chatMessages}
-              onSendMessage={handleSendMessage}
-            />
-          </div>
         </div>
 
-        <div className="mt-6 space-y-4">
-          {reports.length > 0 && <CompletionReportHistory reports={reports} />}
-          <CompletionReportForm
-            serviceId={service.id}
-            onSuccess={handleCompletionReportSuccess}
-          />
+        {/* Komunikasi dan Laporan Section */}
+        <div className="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Komunikasi dan Laporan
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+            {/* Kiri: Riwayat Laporan - 2/3 */}
+            <div className="lg:col-span-2 p-4 border-r border-gray-200 space-y-4">
+              {reports.length > 0 && (
+                <CompletionReportHistory reports={reports} />
+              )}
+
+              {/* Tombol untuk menampilkan form jika sudah ada laporan */}
+              {reports.length > 0 && !showReportForm && (
+                <button
+                  onClick={() => setShowReportForm(true)}
+                  className="w-full px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  + Tambah Laporan Baru
+                </button>
+              )}
+
+              {/* Form Laporan */}
+              {showReportForm && (
+                <div className="space-y-2">
+                  {reports.length > 0 && (
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-semibold text-gray-700">
+                        Buat Laporan Baru
+                      </h4>
+                      <button
+                        onClick={() => setShowReportForm(false)}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  )}
+                  <CompletionReportForm
+                    serviceId={service.id}
+                    onSuccess={handleCompletionReportSuccess}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Kanan: Chat - 1/3 */}
+            <div className="lg:col-span-1 min-h-[500px]">
+              <MessageThread
+                messages={chatMessages}
+                onSendMessage={handleSendMessage}
+              />
+            </div>
+          </div>
         </div>
       </article>
     </div>

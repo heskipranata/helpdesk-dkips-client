@@ -113,7 +113,7 @@ export default function CompletionReportForm({
           method: "POST",
           credentials: "include",
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -135,11 +135,11 @@ export default function CompletionReportForm({
       }
 
       const data = (await response.json()) as CompletionReport;
-      
+
       // Reset form
       setNotes("");
       handleRemovePhoto();
-      
+
       // Call success callback
       onSuccess(data);
     } catch (err) {
@@ -163,7 +163,8 @@ export default function CompletionReportForm({
           Laporan Penyelesaian
         </h3>
         <p className="text-xs text-gray-500 mt-1">
-          Kirim foto bukti dan catatan hasil pekerjaan untuk menandai layanan selesai.
+          Kirim foto bukti dan catatan hasil pekerjaan untuk menandai layanan
+          selesai.
         </p>
       </div>
 
@@ -172,19 +173,19 @@ export default function CompletionReportForm({
         <label className="text-sm font-medium text-gray-600 block mb-2">
           Foto/Gambar Laporan <span className="text-red-500">*</span>
         </label>
-        
+
         {photoPreview ? (
           <div className="space-y-2">
-            <div className="relative inline-block">
+            <div className="relative">
               <img
                 src={photoPreview}
                 alt="Preview"
-                className="max-w-xs max-h-48 rounded border border-gray-200"
+                className="w-full h-auto rounded border border-gray-200"
               />
               <button
                 type="button"
                 onClick={handleRemovePhoto}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg"
               >
                 ✕
               </button>
@@ -209,7 +210,7 @@ export default function CompletionReportForm({
             </div>
           </div>
         )}
-        
+
         <input
           ref={fileInputRef}
           type="file"
