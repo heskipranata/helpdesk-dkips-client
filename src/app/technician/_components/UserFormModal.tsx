@@ -58,7 +58,7 @@ export default function UserFormModal({
         nama: user.nama,
         username: user.username,
         password: "",
-        role: user.role || "user",
+        role: user.role,
         opd_id: user.opd_id,
       });
     } else {
@@ -257,11 +257,10 @@ export default function UserFormModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role <span className="text-red-500">*</span>
+              Role
             </label>
             <select
-              required
-              value={formData.role || "user"}
+              value={formData.role}
               onChange={(e) =>
                 setFormData({ ...formData, role: e.target.value })
               }
@@ -271,7 +270,6 @@ export default function UserFormModal({
               <option value="admin">Admin</option>
               <option value="pic">PIC</option>
               <option value="supervisor">Supervisor</option>
-              <option value="teknisi">Teknisi</option>
             </select>
           </div>
           <div className="flex justify-end space-x-3 pt-4">

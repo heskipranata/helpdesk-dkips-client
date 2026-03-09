@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PDFViewer from "../../_components/PDFViewer";
 import MessageThread from "../../_components/MessageThread";
@@ -18,6 +18,7 @@ type Service = {
   email?: string;
   catatan?: string;
   pdf_url?: string;
+  technician_nama?: string | null;
 };
 
 type Message = {
@@ -33,6 +34,21 @@ type DetailClientProps = {
   messages: Message[];
 };
 
+type Technician = {
+  id: string | number;
+  nama?: string;
+  username?: string;
+};
+
+const API_ORIGIN = (
+  process.env.NEXT_PUBLIC_API_ORIGIN ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001"
+).replace(/\/$/, "");
+const API_PREFIX = API_ORIGIN.endsWith("/api")
+  ? API_ORIGIN
+  : `${API_ORIGIN}/api`;
+
 export default function DetailClient({
   service,
   messages: initialMessages,
@@ -41,6 +57,107 @@ export default function DetailClient({
   const [messages, setMessages] = useState(initialMessages);
   const [currentStatus, setCurrentStatus] = useState(service.status);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [selectedTechnician, setSelectedTechnician] = useState("");
+  const [techLoading, setTechLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [techError, setTechError] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    const fetchTechnicians = async () => {
+      setTechLoading(true);
+      setTechError(null);
+      try {
+        const res = await fetch(`${API_PREFIX}/admin/technicians`, {
+          credentials: "include",
+        });
+        if (res.status === 401 || res.status === 403) {
+          router.push("/admin/login");
+          return;
+        }
+        if (!res.ok) {
+          throw new Error("Gagal memuat daftar teknisi");
+        }
+        const data = await res.json();
+        const list = Array.isArray(data)
+          ? data
+          : (data.technicians ?? data.data ?? []);
+        if (isActive) {
+          setTechnicians(Array.isArray(list) ? list : []);
+        }
+      } catch (err) {
+        if (isActive) {
+          setTechError("Gagal memuat daftar teknisi");
+        }
+      } finally {
+        if (isActive) {
+          setTechLoading(false);
+        }
+      }
+    };
+
+    fetchTechnicians();
+    return () => {
+      isActive = false;
+    };
+  }, [router]);
+
+  const getAssignedTechnicianName = (technicianId?: string | null) => {
+    if (!technicianId) return null;
+    const tech = technicians.find((t) => String(t.id) === String(technicianId));
+    return tech ? tech.nama || tech.username || `Teknisi ${tech.id}` : null;
+  };
+
+  const handleAssignTechnician = async () => {
+    if (!selectedTechnician) {
+      setAssignError("Pilih teknisi terlebih dahulu.");
+      return;
+    }
+
+    setAssignLoading(true);
+    setAssignError(null);
+    try {
+      const res = await fetch(
+        `${API_PREFIX}/admin/layanan/${service.id}/assign`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ technician_id: selectedTechnician }),
+        },
+      );
+
+      if (res.status === 401 || res.status === 403) {
+        router.push("/admin/login");
+        return;
+      }
+
+      if (!res.ok) {
+        let message = "Gagal menugaskan teknisi";
+        try {
+          const text = await res.text();
+          try {
+            const json = JSON.parse(text);
+            message = json.message || json.error || json.detail || message;
+          } catch {
+            message = text || message;
+          }
+        } catch {
+          message = "Gagal menugaskan teknisi";
+        }
+        setAssignError(message);
+        return;
+      }
+
+      setSelectedTechnician("");
+    } catch (err) {
+      setAssignError("Terjadi kesalahan jaringan.");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -70,7 +187,7 @@ export default function DetailClient({
 
   const handleUpdateStatus = async (
     newStatusValue: string,
-    note: string = ""
+    note: string = "",
   ) => {
     setIsUpdatingStatus(true);
     try {
@@ -149,7 +266,7 @@ export default function DetailClient({
               }}
               disabled={isUpdatingStatus}
               className={`px-4 py-2 text-sm font-semibold rounded-full border-2 cursor-pointer hover:opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed appearance-none ${getStatusColor(
-                currentStatus
+                currentStatus,
               )}`}
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
@@ -208,11 +325,83 @@ export default function DetailClient({
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Deskripsi</h3>
-        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-          {service.deskripsi || "Tidak ada deskripsi"}
-        </p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            Deskripsi
+          </h3>
+          <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+            {service.deskripsi || "Tidak ada deskripsi"}
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg shadow p-6 space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Assign Teknisi
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Pilih teknisi yang akan menangani layanan ini.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <select
+              value={selectedTechnician}
+              onChange={(event) => setSelectedTechnician(event.target.value)}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-700"
+              disabled={techLoading || technicians.length === 0}
+            >
+              <option value="">
+                {techLoading ? "Memuat teknisi..." : "Pilih teknisi"}
+              </option>
+              {technicians.map((tech) => (
+                <option key={tech.id} value={tech.id}>
+                  {tech.nama || tech.username || `Teknisi ${tech.id}`}
+                </option>
+              ))}
+            </select>
+            {techError && <p className="text-xs text-red-600">{techError}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={handleAssignTechnician}
+            disabled={assignLoading || techLoading || !selectedTechnician}
+            className="w-full bg-gray-900 text-white rounded px-3 py-2 text-sm font-medium hover:bg-black disabled:bg-gray-500 disabled:cursor-not-allowed"
+          >
+            {assignLoading ? "Menugaskan..." : "Assign Teknisi"}
+          </button>
+          {assignError && <p className="text-xs text-red-600">{assignError}</p>}
+
+          {/* Teknisi yang Ditugaskan */}
+          <div className="border-t border-gray-200 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+              Teknisi Ditugaskan
+            </h4>
+            {service.technician_nama ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600 text-lg">✓</span>
+                  <div className="flex-1">
+                    <p className="text-xs text-green-700 font-semibold">
+                      Sudah Ditugaskan
+                    </p>
+                    <p className="text-sm font-medium text-green-900">
+                      {getAssignedTechnicianName(service.technician_nama)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-600 text-lg">⚠</span>
+                  <p className="text-sm font-medium text-yellow-800">
+                    Belum Ada
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

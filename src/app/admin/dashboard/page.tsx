@@ -4,7 +4,6 @@ import ServiceTable from "../_components/ServiceTable";
 import StatCard from "../_components/StatCard";
 import LogoutButton from "../_components/LogoutButton";
 import { redirect } from "next/navigation";
-import { fetchWithAuth } from "@/lib/cookies";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -16,40 +15,56 @@ async function getAllServices() {
     };
   }
 
-  // Mengambil data layanan terbaru
-  const res = await fetchWithAuth(`${API_BASE}/layanan/latest`);
+  try {
+    // Get cookies from headers for server-side fetch
+    const cookieHeader = (await (await import("next/headers")).cookies())
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ");
 
-  if (!res.ok) {
+    // Mengambil data layanan terbaru
+    const res = await fetch(`${API_BASE}/layanan/latest`, {
+      headers: {
+        Cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return { services: [], message: "Gagal memuat layanan" };
+    }
+    const json = await res.json();
+    const servicesRaw = Array.isArray(json) ? json : (json.services ?? []);
+
+    const services = servicesRaw.map((s: any) => {
+      const date = s.created_at ? new Date(s.created_at) : null;
+      return {
+        id: s.id,
+        tanggal: date
+          ? `${String(date.getDate()).padStart(2, "0")}/${String(
+              date.getMonth() + 1,
+            ).padStart(2, "0")}/${date.getFullYear()}`
+          : "-",
+        jam: date
+          ? `${String(date.getHours()).padStart(2, "0")}:${String(
+              date.getMinutes(),
+            ).padStart(2, "0")}`
+          : "-",
+        instansi: s.nama_opd || "-",
+        jenis_permintaan: s.nama_layanan || "-",
+        status: s.status || "pending",
+        deskripsi: s.deskripsi || "",
+        kontak: s.kontak || "",
+        email: s.email || "",
+        catatan: s.catatan || "",
+        file_surat: s.file_surat || "",
+        teknisi_id: s.teknisi_id || null,
+      };
+    });
+    return { services };
+  } catch (error) {
     return { services: [], message: "Gagal memuat layanan" };
   }
-  const json = await res.json();
-  const servicesRaw = Array.isArray(json) ? json : json.services ?? [];
-
-  const services = servicesRaw.map((s: any) => {
-    const date = s.created_at ? new Date(s.created_at) : null;
-    return {
-      id: s.id,
-      tanggal: date
-        ? `${String(date.getDate()).padStart(2, "0")}/${String(
-            date.getMonth() + 1
-          ).padStart(2, "0")}/${date.getFullYear()}`
-        : "-",
-      jam: date
-        ? `${String(date.getHours()).padStart(2, "0")}:${String(
-            date.getMinutes()
-          ).padStart(2, "0")}`
-        : "-",
-      instansi: s.nama_opd || "-",
-      jenis_permintaan: s.nama_layanan || "-",
-      status: s.status || "pending",
-      deskripsi: s.deskripsi || "",
-      kontak: s.kontak || "",
-      email: s.email || "",
-      catatan: s.catatan || "",
-      file_surat: s.file_surat || "",
-    };
-  });
-  return { services };
 }
 
 type StatsSummary = {
@@ -73,13 +88,46 @@ async function getStatsSummary(): Promise<StatsSummary> {
     };
   }
 
-  const res = await fetchWithAuth(`${API_BASE}/layanan/stats/summary`);
+  try {
+    // Get cookies from headers for server-side fetch
+    const cookieHeader = (await (await import("next/headers")).cookies())
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ");
 
-  if (res.status === 401 || res.status === 403) {
-    redirect("/admin/login");
-  }
+    const res = await fetch(`${API_BASE}/layanan/stats/summary`, {
+      headers: {
+        Cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
 
-  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      redirect("/admin/login");
+    }
+
+    if (!res.ok) {
+      return {
+        total: 0,
+        baru: 0,
+        diproses: 0,
+        selesai: 0,
+        tolak: 0,
+        bulan_ini: 0,
+      };
+    }
+
+    const data = await res.json();
+
+    return {
+      total: Number(data.total ?? 0),
+      baru: Number(data.baru ?? 0),
+      diproses: Number(data.diproses ?? 0),
+      selesai: Number(data.selesai ?? 0),
+      tolak: Number(data.tolak ?? 0),
+      bulan_ini: Number(data.bulan_ini ?? 0),
+    };
+  } catch (error) {
     return {
       total: 0,
       baru: 0,
@@ -89,17 +137,6 @@ async function getStatsSummary(): Promise<StatsSummary> {
       bulan_ini: 0,
     };
   }
-
-  const data = await res.json();
-
-  return {
-    total: Number(data.total ?? 0),
-    baru: Number(data.baru ?? 0),
-    diproses: Number(data.diproses ?? 0),
-    selesai: Number(data.selesai ?? 0),
-    tolak: Number(data.tolak ?? 0),
-    bulan_ini: Number(data.bulan_ini ?? 0),
-  };
 }
 
 export default async function AdminDashboardPage() {

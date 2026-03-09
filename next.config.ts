@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allow development access from both localhost and 127.0.0.1
+  allowedDevOrigins: ["http://localhost:3000", "http://127.0.0.1:3000"],
+
   images: {
     remotePatterns: [
       {
@@ -9,17 +12,24 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
   async rewrites() {
-    const API_ORIGIN =
-      process.env.NEXT_PUBLIC_API_ORIGIN || process.env.NEXT_PUBLIC_API_URL;
-    // Default backend during dev
-    const backend = API_ORIGIN || "http://localhost:3001";
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${backend}/api/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:3001/api/:path*",
+        },
+        {
+          source: "/files/:path*",
+          destination: "http://localhost:3001/files/:path*",
+        },
+        {
+          source: "/uploads/:path*",
+          destination: "http://localhost:3001/uploads/:path*",
+        },
+      ],
+    };
   },
 };
 

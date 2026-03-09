@@ -30,12 +30,12 @@ async function getServiceDetail(id: string) {
     id: raw?.id ?? id,
     tanggal: date
       ? `${String(date.getDate()).padStart(2, "0")}/${String(
-          date.getMonth() + 1
+          date.getMonth() + 1,
         ).padStart(2, "0")}/${date.getFullYear()}`
       : "-",
     jam: date
       ? `${String(date.getHours()).padStart(2, "0")}:${String(
-          date.getMinutes()
+          date.getMinutes(),
         ).padStart(2, "0")}`
       : "-",
     instansi: raw?.nama_opd ?? raw?.instansi ?? "-",
@@ -48,6 +48,7 @@ async function getServiceDetail(id: string) {
     catatan: raw?.note ?? raw?.catatan,
     pdf_url:
       raw?.pdf_url ?? raw?.file_surat ?? raw?.lampiran ?? raw?.attachment_url,
+    teknisi_id: raw?.teknisi_id ?? null,
   };
 
   // Fetch chat messages
@@ -56,7 +57,9 @@ async function getServiceDetail(id: string) {
 
   if (chatRes.ok) {
     const chatData = await chatRes.json();
-    const rows = Array.isArray(chatData) ? chatData : chatData?.messages ?? [];
+    const rows = Array.isArray(chatData)
+      ? chatData
+      : (chatData?.messages ?? []);
 
     chatMessages = rows.map((m: any) => {
       const ts = m.created_at ? new Date(m.created_at) : null;
@@ -68,7 +71,7 @@ async function getServiceDetail(id: string) {
             ? "admin"
             : "user",
         message: m.message ?? "",
-        timestamp: ts ? ts.toLocaleString("id-ID") : m.created_at ?? "",
+        timestamp: ts ? ts.toLocaleString("id-ID") : (m.created_at ?? ""),
       };
     });
   }
@@ -97,10 +100,7 @@ export default async function DetailPage({
       <div className="flex h-screen">
         <Sidebar />
         <main className="flex-1 p-6 bg-gray-50 overflow-y-auto">
-          <DetailClient
-            service={service}
-            messages={messages}
-          />
+          <DetailClient service={service} messages={messages} />
         </main>
       </div>
     </AdminShell>

@@ -11,7 +11,6 @@ type Service = {
   status: "baru" | "diproses" | "selesai" | "tolak";
   deskripsi?: string;
   prioritas?: string;
-  teknisi_id?: string | null;
 };
 
 type ServiceTableProps = {
@@ -75,7 +74,7 @@ export default function ServiceTable({ services }: ServiceTableProps) {
               <td className="px-4 py-3">
                 <span
                   className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                    service.status,
+                    service.status
                   )}`}
                 >
                   {service.status}

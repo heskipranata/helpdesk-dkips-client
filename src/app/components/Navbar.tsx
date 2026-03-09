@@ -9,7 +9,7 @@ const NAV_LINKS = [
   { label: "Beranda", href: "/" },
   { label: "Layanan", href: "/layanan" },
   { label: "Riwayat", href: "/riwayat" },
-  { label: "Kontak", href: "#kontak" },
+  
 ];
 
 export default function Navbar() {
@@ -31,7 +31,7 @@ export default function Navbar() {
           : "bg-white/95 backdrop-blur-lg shadow-md"
       }`}
     >
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-5">
         <div className="flex items-center gap-3">
           <Image
             src="https://res.cloudinary.com/dewi8c1ll/image/upload/v1765522604/sulut-icon_c9wme4.png"

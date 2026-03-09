@@ -17,33 +17,28 @@ type Layanan = {
 export default function RiwayatCard({ layanan }: { layanan: Layanan }) {
   return (
     <Link href={`/riwayat/${layanan.id}`}>
-      <div className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow cursor-pointer">
-        <div className="flex items-start justify-between mb-3">
+      <div className="bg-blue-600 border border-blue-700 rounded-lg p-5 hover:shadow-lg hover:border-blue-800 hover:bg-blue-700 transition-all cursor-pointer h-full flex flex-col">
+        <div className="flex items-start justify-between mb-3 flex-1">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="font-semibold text-gray-900">
-                {layanan.nama_instansi}
+            {layanan.jenis_permintaan && (
+              <h3 className="text-lg font-bold text-white mb-1">
+                {layanan.jenis_permintaan}
               </h3>
-              <StatusBadge status={layanan.status} />
-            </div>
-            {layanan.nama_opd && (
-              <p className="text-xs text-gray-500 mb-1">
-                OPD: {layanan.nama_opd}
+            )}
+            {layanan.deskripsi && (
+              <p className="text-sm text-blue-100 line-clamp-2">
+                {layanan.deskripsi}
               </p>
             )}
-            <p className="text-sm text-gray-600">{layanan.jenis_permintaan}</p>
+            <div className="mt-2">
+              <StatusBadge status={layanan.status} />
+            </div>
           </div>
-          <span className="text-xs text-gray-500">{layanan.tanggal}</span>
+          <span className="text-xs text-blue-200 ml-2">{layanan.tanggal}</span>
         </div>
 
-        {layanan.deskripsi && (
-          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-            {layanan.deskripsi}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center justify-between pt-3 border-t border-blue-500">
+          <div className="flex items-center gap-2 text-xs text-blue-200">
             <svg
               className="w-4 h-4"
               fill="none"
@@ -59,7 +54,7 @@ export default function RiwayatCard({ layanan }: { layanan: Layanan }) {
             </svg>
             ID: {layanan.id}
           </div>
-          <span className="text-sm font-medium text-blue-600 hover:text-blue-700 transition">
+          <span className="text-sm font-medium text-white hover:text-blue-100 transition">
             Lihat Detail →
           </span>
         </div>

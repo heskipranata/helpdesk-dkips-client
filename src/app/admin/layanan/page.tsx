@@ -1,8 +1,11 @@
 import AdminShell from "../_components/AdminShell";
 import Sidebar from "../_components/Sidebar";
 import LayananClient from "./LayananClient";
-import { fetchWithAuth } from "@/lib/cookies";
 import { redirect } from "next/navigation";
+
+type Cookies = {
+  [key: string]: string;
+};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -12,7 +15,18 @@ async function getAllLayanan() {
   }
 
   try {
-    const res = await fetchWithAuth(`${API_URL}/layanan/all`);
+    // Get cookies from headers for server-side fetch
+    const cookieHeader = (await (await import("next/headers")).cookies())
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ");
+
+    const res = await fetch(`${API_URL}/layanan/all`, {
+      headers: {
+        Cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
 
     if (res.status === 401 || res.status === 403) {
       redirect("/admin/login");
@@ -25,7 +39,7 @@ async function getAllLayanan() {
     const json = await res.json();
     const servicesRaw = Array.isArray(json)
       ? json
-      : json.services ?? json.data ?? json.layanan ?? [];
+      : (json.services ?? json.data ?? json.layanan ?? []);
 
     const services = servicesRaw.map((s: any) => {
       const date = s.created_at ? new Date(s.created_at) : null;
@@ -33,17 +47,18 @@ async function getAllLayanan() {
         id: s.id,
         tanggal: date
           ? `${String(date.getDate()).padStart(2, "0")}/${String(
-              date.getMonth() + 1
+              date.getMonth() + 1,
             ).padStart(2, "0")}/${date.getFullYear()}`
           : "-",
         jam: date
           ? `${String(date.getHours()).padStart(2, "0")}:${String(
-              date.getMinutes()
+              date.getMinutes(),
             ).padStart(2, "0")}`
           : "-",
         instansi: s.nama_opd || "-",
         jenis_permintaan: s.nama_layanan || "-",
         status: s.status || "baru",
+        teknisi_id: s.teknisi_id || null,
       };
     });
 

@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import ReCAPTCHA from "react-google-recaptcha";
 
 export default function LoginForm() {
@@ -29,21 +29,68 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Normalize origin to avoid double /api when env already includes it
+      const API_ORIGIN = (
+        process.env.NEXT_PUBLIC_API_ORIGIN ??
+        process.env.NEXT_PUBLIC_API_URL ??
+        "http://localhost:3001"
+      ).replace(/\/$/, "");
+
+      const response = await fetch(
+        API_ORIGIN
+          ? `${API_ORIGIN}/api/technician/login`
+          : "/api/technician/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          mode: "cors",
+          credentials: "include",
+          body: JSON.stringify({
+            ...formData,
+            recaptchaToken,
+          }),
         },
-        credentials: "include",
-        body: JSON.stringify({
-          ...formData,
-          recaptchaToken,
-        }),
-      });
+      );
 
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || "Login gagal");
+        let serverMessage = "";
+        try {
+          const text = await response.text();
+          console.error("Login failed:", {
+            status: response.status,
+            statusText: response.statusText,
+            body: text,
+          });
+          // Try parse JSON, else use raw text
+          serverMessage = (() => {
+            try {
+              const json = JSON.parse(text);
+              return (
+                json.message ||
+                json.error ||
+                json.detail ||
+                text ||
+                "Login gagal"
+              );
+            } catch {
+              return text || "Login gagal";
+            }
+          })();
+        } catch {
+          serverMessage = "Login gagal";
+        }
+
+        // Tambahkan info status code untuk membantu debugging
+        const statusInfo =
+          response.status === 403
+            ? " (User bukan role teknisi atau akses ditolak)"
+            : response.status === 401
+              ? " (Username atau password salah)"
+              : "";
+        setError(serverMessage + statusInfo);
         setIsLoading(false);
         // Reset captcha jika login gagal
         recaptchaRef.current?.reset();
@@ -51,20 +98,15 @@ export default function LoginForm() {
         return;
       }
 
-      const data = await response.json();
-
-      // Simpan role ke cookie untuk AuthGuard
-      const userRole = data.role || data.user?.role || "user";
-      document.cookie = `role=${userRole}; path=/; max-age=86400`; // 24 jam
-
-      // Redirect berdasarkan role user
-      if (userRole === "admin") {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/riwayat");
-      }
-    } catch (err) {
-      setError("Terjadi kesalahan, silakan coba lagi");
+      // Successful login - backend should set httpOnly auth cookie
+      // Redirect to technician dashboard
+      router.push("/technician/dashboard");
+    } catch (err: any) {
+      const msg =
+        err?.message === "Failed to fetch"
+          ? "Gagal terhubung ke server (CORS/jaringan). Pastikan API berjalan di localhost:3001 dan CORS mengizinkan credentials."
+          : "Terjadi kesalahan jaringan, silakan coba lagi";
+      setError(msg);
       setIsLoading(false);
       // Reset captcha jika terjadi error
       recaptchaRef.current?.reset();
@@ -84,10 +126,7 @@ export default function LoginForm() {
               height={55}
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Helpdesk Dinas Komunikasi Informatika Persandian dan Statistika
-            Daerah Pemerintah Provinsi Sulawesi Utara
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-800">Login Teknisi</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -109,7 +148,7 @@ export default function LoginForm() {
                 setFormData({ ...formData, username: e.target.value })
               }
               placeholder="Masukkan username"
-              className="w-full border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              className="w-full border text-gray-600 border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
           </div>
@@ -126,7 +165,7 @@ export default function LoginForm() {
                 setFormData({ ...formData, password: e.target.value })
               }
               placeholder="Masukkan password"
-              className="w-full border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              className="w-full border text-gray-700 border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
           </div>
@@ -144,17 +183,14 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={isLoading || !recaptchaToken}
-            className="w-full bg-blue-600 text-white py-2 px-2 rounded font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
           >
             {isLoading ? "Memproses..." : "Masuk"}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            <span className="text-red-500">*</span>Belum memiliki akun? Hubungi
-            administrator
-          </p>
+          <p>Gunakan username dan password khusus teknisi.</p>
         </div>
       </div>
     </div>

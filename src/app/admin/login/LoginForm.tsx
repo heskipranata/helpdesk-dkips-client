@@ -1,21 +1,31 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function LoginForm() {
   const router = useRouter();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validasi reCAPTCHA
+    if (!recaptchaToken) {
+      setError("Silakan selesaikan verifikasi reCAPTCHA terlebih dahulu");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -37,8 +47,11 @@ export default function LoginForm() {
           },
           mode: "cors",
           credentials: "include",
-          body: JSON.stringify(formData),
-        }
+          body: JSON.stringify({
+            ...formData,
+            recaptchaToken,
+          }),
+        },
       );
 
       if (!response.ok) {
@@ -66,6 +79,9 @@ export default function LoginForm() {
 
         setError(serverMessage);
         setIsLoading(false);
+        // Reset captcha jika login gagal
+        recaptchaRef.current?.reset();
+        setRecaptchaToken(null);
         return;
       }
 
@@ -79,6 +95,9 @@ export default function LoginForm() {
           : "Terjadi kesalahan jaringan, silakan coba lagi";
       setError(msg);
       setIsLoading(false);
+      // Reset captcha jika terjadi error
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     }
   };
 
@@ -138,9 +157,19 @@ export default function LoginForm() {
             />
           </div>
 
+          {/* reCAPTCHA */}
+          <div className="flex justify-center my-4">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+              onChange={(token) => setRecaptchaToken(token)}
+              onExpired={() => setRecaptchaToken(null)}
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !recaptchaToken}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
           >
             {isLoading ? "Memproses..." : "Masuk"}
@@ -148,7 +177,7 @@ export default function LoginForm() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p> Gunankan  username dan password khusus Administrator</p>
+          <p> Gunankan username dan password khusus Administrator</p>
         </div>
       </div>
     </div>

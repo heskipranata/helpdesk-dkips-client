@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "../../components/StatusBadge";
 import PDFViewer from "../../components/PDFViewer";
+import ChatTabs from "../../components/ChatTabs";
+import CompletionReportHistory, {
+  CompletionReportRecord,
+} from "../../technician/_components/CompletionReportHistory";
 
 type Progress = {
   id: number;
@@ -16,7 +20,7 @@ type Progress = {
 type Message = {
   id: number;
   sender: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "teknisi";
   message: string;
   timestamp: string;
 };
@@ -37,22 +41,30 @@ type Service = {
 type RiwayatDetailClientProps = {
   layananId: string | number;
   initialService: Service;
-  initialMessages: Message[];
+  initialAdminMessages: Message[];
+  initialTechMessages: Message[];
   initialProgress: Progress[];
+  initialReports?: CompletionReportRecord[];
 };
 
 export default function RiwayatDetailClient({
   layananId,
   initialService,
-  initialMessages,
+  initialAdminMessages,
+  initialTechMessages,
   initialProgress,
+  initialReports,
 }: RiwayatDetailClientProps) {
   const router = useRouter();
   const [service, setService] = useState<Service>(initialService);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [adminMessages, setAdminMessages] =
+    useState<Message[]>(initialAdminMessages);
+  const [techMessages, setTechMessages] =
+    useState<Message[]>(initialTechMessages);
   const [progress, setProgress] = useState<Progress[]>(initialProgress);
-  const [newMessage, setNewMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  const [reports, setReports] = useState<CompletionReportRecord[]>(
+    initialReports || [],
+  );
 
   const isStatusMessage = (message: string) => {
     return message.includes("Status permintaan Anda telah diperbarui menjadi:");
@@ -92,46 +104,31 @@ export default function RiwayatDetailClient({
     );
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || sending) return;
-
-    const messageText = newMessage;
-    const tempId = Date.now();
-    const optimisticMessage: Message = {
-      id: tempId,
-      sender: "Anda",
-      role: "user",
-      message: messageText,
-      timestamp: new Date().toLocaleString("id-ID"),
-    };
-
-    setMessages([...messages, optimisticMessage]);
-    setNewMessage("");
-
+  const handleSendAdminMessage = async (message: string) => {
+    if (!message.trim()) return;
     try {
-      setSending(true);
-      const res = await fetch(
-        `http://localhost:3001/api/layanan/${layananId}/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ message: messageText }),
-        },
-      );
-
-      if (!res.ok) {
-        // Rollback jika gagal
-        setMessages(messages.filter((m) => m.id !== tempId));
-        setNewMessage(messageText);
-      }
+      await fetch(`http://localhost:3001/api/layanan/${layananId}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ message }),
+      });
     } catch (err) {
-      // Rollback jika error
-      setMessages(messages.filter((m) => m.id !== tempId));
-      setNewMessage(messageText);
-    } finally {
-      setSending(false);
+      console.error("Failed to send admin message", err);
+    }
+  };
+
+  const handleSendTechMessage = async (message: string) => {
+    if (!message.trim()) return;
+    try {
+      await fetch(`http://localhost:3001/api/layanan/${layananId}/chat/tech`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ message }),
+      });
+    } catch (err) {
+      console.error("Failed to send tech message", err);
     }
   };
 
@@ -203,10 +200,11 @@ export default function RiwayatDetailClient({
           {service.file_surat ? (
             <div className="flex-1 overflow-y-auto">
               <PDFViewer
-                fileUrl={`http://localhost:3001/${service.file_surat.replace(
-                  /\\/g,
-                  "/",
-                )}`}
+                fileUrl={`/uploads/${service.file_surat
+                  .replace(/\\/g, "/")
+                  .replace(/^\/+/, "")
+                  .split("/")
+                  .pop()}`}
                 fileName={`Lampiran-${service.id}.pdf`}
               />
             </div>
@@ -232,95 +230,24 @@ export default function RiwayatDetailClient({
           )}
         </div>
 
-        {/* Right Column - Chat (1/3 width) */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700">
-              Pesan & Komunikasi
-            </h3>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <svg
-                  className="w-16 h-16 text-gray-300 mx-auto mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                <p className="text-gray-500 text-sm">Belum ada pesan</p>
-              </div>
-            ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.role === "admin" ? "justify-start" : "justify-end"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[85%] ${
-                      msg.role === "admin"
-                        ? "bg-gray-100"
-                        : "bg-blue-600 text-white"
-                    } rounded-lg p-3`}
-                  >
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-900">
-                        {msg.sender}
-                      </span>
-                      <span
-                        className={`text-xs ${
-                          msg.role === "admin"
-                            ? "text-gray-500"
-                            : "text-blue-200"
-                        }`}
-                      >
-                        {msg.timestamp}
-                      </span>
-                    </div>
-                    <p
-                      className={`text-sm whitespace-pre-wrap ${
-                        msg.role === "admin" ? "text-gray-900" : ""
-                      }`}
-                    >
-                      {msg.role === "admin" && isStatusMessage(msg.message)
-                        ? renderStatusMessage(msg.message)
-                        : msg.message}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <form
-            onSubmit={handleSendMessage}
-            className="border-t border-gray-200 p-4 flex gap-2"
-          >
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Tulis pesan..."
-              disabled={sending}
-              className="flex-1 border border-gray-300 text-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-            />
-            <button
-              type="submit"
-              disabled={sending || !newMessage.trim()}
-              className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              {sending ? "..." : "Kirim"}
-            </button>
-          </form>
-        </div>
+        {/* Right Column - Chat with Tabs (1/3 width) */}
+        <ChatTabs
+          adminMessages={adminMessages}
+          techMessages={techMessages}
+          onSendAdminMessage={handleSendAdminMessage}
+          onSendTechMessage={handleSendTechMessage}
+        />
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          Laporan Penyelesaian
+        </h3>
+        {reports.length > 0 ? (
+          <CompletionReportHistory reports={reports} />
+        ) : (
+          <p className="text-sm text-gray-500">Belum ada</p>
+        )}
       </div>
     </div>
   );

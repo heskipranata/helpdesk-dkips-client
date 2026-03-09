@@ -18,12 +18,13 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [namaOPD, setNamaOPD] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
     // Ambil profil user dari GET /auth/me
     const fetchUserProfile = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/auth/me", {
+        const res = await fetch("/api/auth/me", {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
@@ -34,6 +35,9 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
           const userData = await res.json();
           if (userData.nama_opd) {
             setNamaOPD(userData.nama_opd);
+          }
+          if (userData.username) {
+            setUsername(userData.username);
           }
         }
       } catch (err) {
@@ -55,27 +59,34 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 py-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 py-24">
       <div className="container mx-auto px-4 max-w-5xl">
-        <div className="mb-8">
-          {namaOPD && (
-            <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                Organisasi Perangkat Daerah
-              </p>
-              <h2 className="text-2xl font-bold text-blue-900">{namaOPD}</h2>
-            </div>
-          )}
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <div>
+          <h1 className="text-3xl md:text-2xl font-bold text-gray-900 mb-2">
             Riwayat Permintaan
           </h1>
-          <p className="text-gray-600">
-            Lihat status dan riwayat permintaan layanan Anda
+          <p className="text-gray-600 text-base">
+            Lihat status dan riwayat permintaan layanan instansi Anda
           </p>
         </div>
 
+        <div className="mt-12">
+          {namaOPD && (
+            <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+              <div className="flex items-baseline gap-3 mb-2">
+                <h2 className="text-3xl md:text-4xl font-bold text-blue-900">
+                  {namaOPD}
+                </h2>
+              </div>
+              {username && (
+                <p className="text-sm text-blue-700 font-medium">@{username}</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Filter & Search */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 md:p-5 mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <input
@@ -90,13 +101,23 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
               >
-                <option value="all">Semua Status</option>
-                <option value="baru">Baru</option>
-                <option value="diproses">Diproses</option>
-                <option value="selesai">Selesai</option>
-                <option value="tolak">Tolak</option>
+                <option className="text-gray-600" value="all">
+                  Semua Status
+                </option>
+                <option className="text-gray-600" value="baru">
+                  Baru
+                </option>
+                <option className="text-gray-600" value="diproses">
+                  Diproses
+                </option>
+                <option className="text-gray-600" value="selesai">
+                  Selesai
+                </option>
+                <option className="text-gray-600" value="tolak">
+                  Tolak
+                </option>
               </select>
             </div>
           </div>
@@ -124,7 +145,7 @@ export default function RiwayatClient({ layanan }: { layanan: Layanan[] }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filteredLayanan.map((item) => (
               <RiwayatCard key={item.id} layanan={item} />
             ))}

@@ -1,48 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-type JenisLayanan = {
+type Opd = {
   id: string | number;
-  nama_layanan: string;
-  deskripsi?: string;
+  nama_opd: string;
 };
 
-type JenisLayananClientProps = {
-  initialData: JenisLayanan[];
+type OpdClientProps = {
+  initialData: Opd[];
 };
 
-export default function JenisLayananClient({
-  initialData,
-}: JenisLayananClientProps) {
+export default function OpdClient({ initialData }: OpdClientProps) {
   const router = useRouter();
-  const [jenisLayanan, setJenisLayanan] = useState<JenisLayanan[]>(initialData);
+  const [opdList, setOpdList] = useState<Opd[]>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formData, setFormData] = useState({
-    nama_layanan: "",
-    deskripsi: "",
+    nama_opd: "",
   });
 
-  const fetchJenisLayanan = async () => {
+  const fetchOpd = async () => {
     try {
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-      const res = await fetch(`${API_URL}/jenis-layanan`, {
-        credentials: "include",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const items = Array.isArray(data) ? data : (data.data ?? []);
-        setJenisLayanan(items);
+
+      const candidates = [`${API_URL}/opd`, `${API_URL}/admin/opd`];
+      let found: Opd[] | null = null;
+
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, {
+            credentials: "include",
+            cache: "no-store",
+          });
+
+          if (!res.ok) {
+            continue;
+          }
+
+          const data = await res.json();
+
+          const list = Array.isArray(data)
+            ? data
+            : (data?.data ?? data?.opd ?? []);
+
+          if (Array.isArray(list)) {
+            found = list as Opd[];
+            break;
+          }
+        } catch (innerErr) {
+          // Error silently handled
+        }
+      }
+
+      if (found) {
+        setOpdList(found);
       }
     } catch (error) {
       // Error silently handled
     }
   };
+
+  useEffect(() => {
+    fetchOpd();
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -56,8 +81,8 @@ export default function JenisLayananClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nama_layanan.trim()) {
-      alert("Nama jenis layanan harus diisi");
+    if (!formData.nama_opd.trim()) {
+      alert("Nama OPD harus diisi");
       return;
     }
 
@@ -66,9 +91,7 @@ export default function JenisLayananClient({
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
       const method = editingId ? "PUT" : "POST";
-      const url = editingId
-        ? `${API_URL}/jenis-layanan/${editingId}`
-        : `${API_URL}/jenis-layanan`;
+      const url = editingId ? `${API_URL}/opd/${editingId}` : `${API_URL}/opd`;
 
       const res = await fetch(url, {
         method,
@@ -81,10 +104,9 @@ export default function JenisLayananClient({
         setIsModalOpen(false);
         setEditingId(null);
         setFormData({
-          nama_layanan: "",
-          deskripsi: "",
+          nama_opd: "",
         });
-        await fetchJenisLayanan();
+        await fetchOpd();
       }
     } catch (error) {
       // Error silently handled
@@ -94,19 +116,19 @@ export default function JenisLayananClient({
   };
 
   const handleDelete = async (id: string | number) => {
-    if (!confirm("Yakin ingin menghapus jenis layanan ini?")) return;
+    if (!confirm("Yakin ingin menghapus OPD ini?")) return;
 
     setIsDeleting(id);
     try {
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-      const res = await fetch(`${API_URL}/jenis-layanan/${id}`, {
+      const res = await fetch(`${API_URL}/opd/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
 
       if (res.ok) {
-        await fetchJenisLayanan();
+        await fetchOpd();
       }
     } catch (error) {
       // Error silently handled
@@ -115,11 +137,10 @@ export default function JenisLayananClient({
     }
   };
 
-  const handleEdit = (item: JenisLayanan) => {
+  const handleEdit = (item: Opd) => {
     setEditingId(item.id);
     setFormData({
-      nama_layanan: item.nama_layanan,
-      deskripsi: item.deskripsi || "",
+      nama_opd: item.nama_opd,
     });
     setIsModalOpen(true);
   };
@@ -128,30 +149,31 @@ export default function JenisLayananClient({
     setIsModalOpen(false);
     setEditingId(null);
     setFormData({
-      nama_layanan: "",
-      deskripsi: "",
+      nama_opd: "",
     });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-800">Jenis Layanan</h1>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Organisasi Perangkat Daerah (OPD)
+        </h1>
         <button
           onClick={() => {
             setEditingId(null);
-            setFormData({ nama_layanan: "", deskripsi: "" });
+            setFormData({ nama_opd: "" });
             setIsModalOpen(true);
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
         >
-          + Tambah Jenis Layanan
+          + Tambah OPD
         </button>
       </div>
 
-      {jenisLayanan.length === 0 ? (
+      {opdList.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-500">Belum ada jenis layanan</p>
+          <p className="text-gray-500">Belum ada OPD</p>
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -159,10 +181,7 @@ export default function JenisLayananClient({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  Nama
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  Deskripsi
+                  Nama OPD
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
                   Aksi
@@ -170,13 +189,10 @@ export default function JenisLayananClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {jenisLayanan.map((item) => (
+              {opdList.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {item.nama_layanan}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {item.deskripsi || "-"}
+                    {item.nama_opd}
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <div className="flex gap-2">
@@ -206,35 +222,21 @@ export default function JenisLayananClient({
         <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-96">
             <h2 className="text-xl font-semibold mb-4">
-              {editingId ? "Edit Jenis Layanan" : "Tambah Jenis Layanan"}
+              {editingId ? "Edit OPD" : "Tambah OPD"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Nama *
+                  Nama OPD *
                 </label>
                 <input
                   type="text"
-                  name="nama_layanan"
-                  value={formData.nama_layanan}
+                  name="nama_opd"
+                  value={formData.nama_opd}
                   onChange={handleInputChange}
-                  placeholder="Nama jenis layanan"
+                  placeholder="Nama OPD"
                   className="w-full border border-gray-300 rounded px-3 py-2 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Deskripsi
-                </label>
-                <textarea
-                  name="deskripsi"
-                  value={formData.deskripsi}
-                  onChange={handleInputChange}
-                  placeholder="Deskripsi (opsional)"
-                  rows={3}
-                  className="w-full border border-gray-300 rounded text-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 

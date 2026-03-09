@@ -5,6 +5,19 @@ import { cookies } from "next/headers";
 
 const API_URL = "http://localhost:3001/api";
 
+type CompletionReport = {
+  id: number;
+  layanan_id: number;
+  technician_id: number;
+  status: string;
+  summary: string;
+  photo_path: string;
+  completed_at: string;
+  created_at: string;
+  technician_nama?: string;
+  technician_username?: string;
+};
+
 async function getServiceDetail(id: string) {
   try {
     const cookieHeader = (await cookies()).toString();
@@ -81,21 +94,21 @@ async function getServiceDetail(id: string) {
       file_surat: fileSurat,
     };
 
-    // Fetch chat messages
-    const resChat = await fetch(`${API_URL}/layanan/${id}/chat`, {
+    // Fetch chat messages - Admin
+    const resChatAdmin = await fetch(`${API_URL}/layanan/${id}/chat`, {
       headers: { cookie: cookieHeader },
       cache: "no-store",
       credentials: "include",
     });
 
-    let chatMessages = [];
-    if (resChat.ok) {
-      const chatData = await resChat.json();
+    let adminMessages = [];
+    if (resChatAdmin.ok) {
+      const chatData = await resChatAdmin.json();
       const rows = Array.isArray(chatData)
         ? chatData
         : chatData?.messages ?? [];
 
-      chatMessages = rows.map((m: any) => {
+      adminMessages = rows.map((m: any) => {
         const ts = m.created_at ? new Date(m.created_at) : null;
         return {
           id: m.id,
@@ -104,6 +117,32 @@ async function getServiceDetail(id: string) {
             m.sender_username === "admin" || m.role === "admin"
               ? "admin"
               : "user",
+          message: m.message ?? "",
+          timestamp: ts ? ts.toLocaleString("id-ID") : m.created_at ?? "",
+        };
+      });
+    }
+
+    // Fetch chat messages - Teknisi
+    const resChatTech = await fetch(`${API_URL}/layanan/${id}/chat/tech`, {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    let techMessages = [];
+    if (resChatTech.ok) {
+      const chatData = await resChatTech.json();
+      const rows = Array.isArray(chatData)
+        ? chatData
+        : chatData?.messages ?? [];
+
+      techMessages = rows.map((m: any) => {
+        const ts = m.created_at ? new Date(m.created_at) : null;
+        return {
+          id: m.id,
+          sender: m.sender_nama ?? m.sender_username ?? "User",
+          role: m.sender_role ?? m.role ?? (m.sender_username === "admin" ? "admin" : "user"),
           message: m.message ?? "",
           timestamp: ts ? ts.toLocaleString("id-ID") : m.created_at ?? "",
         };
@@ -123,10 +162,27 @@ async function getServiceDetail(id: string) {
       progress = Array.isArray(progData) ? progData : progData?.progress ?? [];
     }
 
+    // Fetch completion reports dari teknisi
+    let reports: CompletionReport[] = [];
+    const resReports = await fetch(`${API_URL}/layanan/${id}/report`, {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    if (resReports.ok) {
+      const reportsData = await resReports.json();
+      reports = Array.isArray(reportsData)
+        ? reportsData
+        : (reportsData?.reports ?? []);
+    }
+
     return {
       service,
-      messages: chatMessages,
+      adminMessages,
+      techMessages,
       progress,
+      reports,
     };
   } catch (err) {
     return null;
@@ -171,8 +227,10 @@ export default async function RiwayatDetailPage({
             </div>
             <RiwayatDetailClient
               initialService={data.service}
-              initialMessages={data.messages}
+              initialAdminMessages={data.adminMessages}
+              initialTechMessages={data.techMessages}
               initialProgress={data.progress}
+              initialReports={data.reports}
               layananId={id}
             />
           </div>
