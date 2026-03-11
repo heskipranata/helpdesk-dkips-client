@@ -49,6 +49,8 @@ async function getServiceDetail(id: string) {
     pdf_url:
       raw?.pdf_url ?? raw?.file_surat ?? raw?.lampiran ?? raw?.attachment_url,
     teknisi_id: raw?.teknisi_id ?? null,
+    technician_nama:
+      raw?.technician_nama ?? raw?.teknisi_nama ?? raw?.nama_teknisi ?? null,
   };
 
   // Fetch chat messages

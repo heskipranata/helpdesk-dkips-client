@@ -18,6 +18,7 @@ type Service = {
   email?: string;
   catatan?: string;
   pdf_url?: string;
+  teknisi_id?: string | number | null;
   technician_nama?: string | null;
 };
 
@@ -49,6 +50,24 @@ const API_PREFIX = API_ORIGIN.endsWith("/api")
   ? API_ORIGIN
   : `${API_ORIGIN}/api`;
 
+const parseErrorMessage = async (
+  res: Response,
+  fallbackMessage: string,
+): Promise<string> => {
+  try {
+    const text = await res.text();
+    if (!text) return fallbackMessage;
+    try {
+      const json = JSON.parse(text);
+      return json.message || json.error || json.detail || fallbackMessage;
+    } catch {
+      return text;
+    }
+  } catch {
+    return fallbackMessage;
+  }
+};
+
 export default function DetailClient({
   service,
   messages: initialMessages,
@@ -63,6 +82,9 @@ export default function DetailClient({
   const [assignLoading, setAssignLoading] = useState(false);
   const [techError, setTechError] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignedTechnicianId, setAssignedTechnicianId] = useState<
+    string | null
+  >(service.teknisi_id ? String(service.teknisi_id) : null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -112,6 +134,10 @@ export default function DetailClient({
     return tech ? tech.nama || tech.username || `Teknisi ${tech.id}` : null;
   };
 
+  const assignedTechnicianName = assignedTechnicianId
+    ? getAssignedTechnicianName(assignedTechnicianId)
+    : null;
+
   const handleAssignTechnician = async () => {
     if (!selectedTechnician) {
       setAssignError("Pilih teknisi terlebih dahulu.");
@@ -137,23 +163,17 @@ export default function DetailClient({
       }
 
       if (!res.ok) {
-        let message = "Gagal menugaskan teknisi";
-        try {
-          const text = await res.text();
-          try {
-            const json = JSON.parse(text);
-            message = json.message || json.error || json.detail || message;
-          } catch {
-            message = text || message;
-          }
-        } catch {
-          message = "Gagal menugaskan teknisi";
-        }
+        const message = await parseErrorMessage(
+          res,
+          "Gagal menugaskan teknisi",
+        );
         setAssignError(message);
         return;
       }
 
+      setAssignedTechnicianId(selectedTechnician);
       setSelectedTechnician("");
+      router.refresh();
     } catch (err) {
       setAssignError("Terjadi kesalahan jaringan.");
     } finally {
@@ -171,19 +191,17 @@ export default function DetailClient({
       message,
       timestamp: new Date().toLocaleString("id-ID"),
     };
-    setMessages([...messages, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
 
     try {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-      await fetch(`${API_URL}/layanan/${service.id}/chat`, {
+      await fetch(`${API_PREFIX}/layanan/${service.id}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ message }),
       });
-    } catch (error) {
-      // Error silently handled
+    } catch {
+      // Ignore chat send failure on optimistic UI updates.
     }
   };
 
@@ -193,10 +211,7 @@ export default function DetailClient({
   ) => {
     setIsUpdatingStatus(true);
     try {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
-
-      const res = await fetch(`${API_URL}/layanan/${service.id}`, {
+      const res = await fetch(`${API_PREFIX}/layanan/${service.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -217,23 +232,23 @@ export default function DetailClient({
           message: statusMessage,
           timestamp: new Date().toLocaleString("id-ID"),
         };
-        setMessages([...messages, newMessage]);
+        setMessages((prev) => [...prev, newMessage]);
 
         try {
-          await fetch(`${API_URL}/layanan/${service.id}/chat`, {
+          await fetch(`${API_PREFIX}/layanan/${service.id}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({ message: statusMessage }),
           });
-        } catch (error) {
-          // Error silently handled
+        } catch {
+          // Ignore chat send failure on optimistic UI updates.
         }
 
         router.refresh();
       }
-    } catch (error) {
-      // Error silently handled
+    } catch {
+      // Ignore status update network errors here; UI remains consistent.
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -266,20 +281,7 @@ export default function DetailClient({
       }
 
       if (!res.ok) {
-        let message = "Gagal menghapus layanan";
-        try {
-          const text = await res.text();
-          if (text) {
-            try {
-              const json = JSON.parse(text);
-              message = json.message || json.error || json.detail || message;
-            } catch {
-              message = text;
-            }
-          }
-        } catch {
-          message = "Gagal menghapus layanan";
-        }
+        const message = await parseErrorMessage(res, "Gagal menghapus layanan");
         alert(message);
         return;
       }
@@ -437,12 +439,11 @@ export default function DetailClient({
           </button>
           {assignError && <p className="text-xs text-red-600">{assignError}</p>}
 
-          {/* Teknisi yang Ditugaskan */}
           <div className="border-t border-gray-200 pt-4">
             <h4 className="text-sm font-semibold text-gray-700 mb-3">
               Teknisi Ditugaskan
             </h4>
-            {service.technician_nama ? (
+            {assignedTechnicianId || service.technician_nama ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 text-lg">✓</span>
@@ -451,7 +452,9 @@ export default function DetailClient({
                       Sudah Ditugaskan
                     </p>
                     <p className="text-sm font-medium text-green-900">
-                      {getAssignedTechnicianName(service.technician_nama)}
+                      {assignedTechnicianName ||
+                        service.technician_nama ||
+                        "Teknisi ditugaskan"}
                     </p>
                   </div>
                 </div>
