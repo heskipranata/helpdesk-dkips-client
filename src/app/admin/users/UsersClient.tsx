@@ -35,6 +35,13 @@ export default function UsersClient({
 }: {
   users: User[];
 }) {
+  const apiOrigin = (
+    process.env.NEXT_PUBLIC_API_ORIGIN ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    "http://localhost:3001"
+  ).replace(/\/$/, "");
+  const apiPrefix = apiOrigin.endsWith("/api") ? apiOrigin : `${apiOrigin}/api`;
+
   const [users, setUsers] = useState(initialUsers);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -133,16 +140,19 @@ export default function UsersClient({
   };
 
   const handleSubmitUser = async (userData: UserFormData) => {
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+    const userCollectionUrls = [
+      `${apiPrefix}/admin/users`,
+      `${apiPrefix}/users`,
+    ];
 
     try {
       if (selectedUser) {
-        // Backend route: PUT /users/:id
         const updatePayload = { ...userData };
-        const updateUrl = `${API_URL}/users/${selectedUser.id}`;
+        const updateUrls = userCollectionUrls.map(
+          (baseUrl) => `${baseUrl}/${selectedUser.id}`,
+        );
 
-        const result = await requestWithFallback([updateUrl], {
+        const result = await requestWithFallback(updateUrls, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updatePayload),
@@ -177,7 +187,7 @@ export default function UsersClient({
           );
         }
       } else {
-        const result = await requestWithFallback([`${API_URL}/users`], {
+        const result = await requestWithFallback(userCollectionUrls, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(userData),
@@ -210,22 +220,33 @@ export default function UsersClient({
 
   const handleConfirmDelete = async () => {
     if (userToDelete) {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+      const deleteUrls = [
+        `${apiPrefix}/admin/users/${userToDelete.id}`,
+        `${apiPrefix}/users/${userToDelete.id}`,
+        `${apiPrefix}/admin/user/${userToDelete.id}`,
+        `${apiPrefix}/user/${userToDelete.id}`,
+        `${apiPrefix}/admin/users/delete/${userToDelete.id}`,
+      ];
 
       try {
-        const res = await fetch(`${API_URL}/users/${userToDelete.id}`, {
+        const result = await requestWithFallback(deleteUrls, {
           method: "DELETE",
-          credentials: "include",
         });
 
-        if (res.ok) {
+        if (result.ok) {
           setUsers(users.filter((u) => u.id !== userToDelete.id));
           alert("User berhasil dihapus");
         } else {
-          alert("Gagal menghapus user");
+          const statusInfo = result.status
+            ? ` (${result.status} ${result.statusText})`
+            : "";
+          alert(
+            result.message
+              ? `Gagal menghapus user${statusInfo}: ${result.message}`
+              : `Gagal menghapus user${statusInfo}`,
+          );
         }
-      } catch (error) {
+      } catch {
         alert("Terjadi kesalahan saat menghapus user");
       } finally {
         setIsDeleteOpen(false);

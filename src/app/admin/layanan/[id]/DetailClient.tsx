@@ -63,6 +63,8 @@ export default function DetailClient({
   const [assignLoading, setAssignLoading] = useState(false);
   const [techError, setTechError] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -250,6 +252,49 @@ export default function DetailClient({
     return "bg-gray-100 text-gray-800 border-gray-300";
   };
 
+  const handleDeleteService = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${API_PREFIX}/admin/layanan/${service.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        router.push("/admin/login");
+        return;
+      }
+
+      if (!res.ok) {
+        let message = "Gagal menghapus layanan";
+        try {
+          const text = await res.text();
+          if (text) {
+            try {
+              const json = JSON.parse(text);
+              message = json.message || json.error || json.detail || message;
+            } catch {
+              message = text;
+            }
+          }
+        } catch {
+          message = "Gagal menghapus layanan";
+        }
+        alert(message);
+        return;
+      }
+
+      alert("Layanan berhasil dihapus");
+      router.push("/admin/layanan");
+      router.refresh();
+    } catch {
+      alert("Terjadi kesalahan saat menghapus layanan");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 text-white">
@@ -280,6 +325,27 @@ export default function DetailClient({
               <option value="selesai">Selesai</option>
               <option value="tolak">Tolak</option>
             </select>
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="p-2 rounded-full border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition"
+              title="Hapus layanan"
+              aria-label="Hapus layanan"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h8"
+                />
+              </svg>
+            </button>
             <button
               onClick={() => router.back()}
               className="text-white hover:bg-white/20 rounded-full p-2 transition"
@@ -439,6 +505,44 @@ export default function DetailClient({
           />
         </div>
       </div>
+
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Konfirmasi Hapus Layanan
+              </h3>
+            </div>
+            <div className="px-5 py-4 space-y-2">
+              <p className="text-sm text-gray-700">
+                Yakin ingin menghapus layanan ini?
+              </p>
+              <p className="text-xs text-gray-500">
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-gray-200 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteService}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {isDeleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

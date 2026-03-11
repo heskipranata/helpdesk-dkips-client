@@ -183,7 +183,6 @@ export default function TechnicianTasksClient({
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr className="text-left text-gray-600">
-                  <th className="px-4 py-3 font-semibold text-center">ID</th>
                   <th className="px-4 py-3 font-semibold">Instansi</th>
                   <th className="px-4 py-3 font-semibold">Layanan</th>
                   <th className="px-4 py-3 font-semibold">Masuk</th>
@@ -199,9 +198,6 @@ export default function TechnicianTasksClient({
                     key={task.id}
                     className="border-t border-gray-100 bg-white"
                   >
-                    <td className="px-4 py-3 text-gray-700 text-center">
-                      {task.id}
-                    </td>
                     <td className="px-4 py-3 text-gray-800 font-medium">
                       {task.instansi}
                     </td>

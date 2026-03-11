@@ -19,7 +19,6 @@ export default function ServiceCard({ service }: { service: Service }) {
       {service.description && (
         <p className="mt-2 text-sm opacity-80">{service.description}</p>
       )}
-      <div className="mt-3 text-xs opacity-60">ID: {service.id}</div>
     </div>
   );
 }

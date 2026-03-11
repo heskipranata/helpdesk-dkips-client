@@ -64,17 +64,9 @@ export default function ServiceDetailModal({
             />
           ) : null}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">ID</label>
-              <p className="mt-1 text-gray-900">{service.id}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Tanggal
-              </label>
-              <p className="mt-1 text-gray-900">{service.tanggal}</p>
-            </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">Tanggal</label>
+            <p className="mt-1 text-gray-900">{service.tanggal}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">
